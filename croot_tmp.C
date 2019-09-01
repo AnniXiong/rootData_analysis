@@ -3,6 +3,7 @@
 #include <TH2.h>
 #include <TStyle.h>
 #include <TCanvas.h>
+#include <TH1F.h>
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -42,6 +43,9 @@ void croot_tmp::Loop()
    
    FILE *fout_pt = fopen("output/ZvvHbb_AntiKt4LCTopoJets_pt.dat", "w");
    FILE *fout_n = fopen("output/ZvvHbb_AntiKt4LCTopoJets_n.dat", "w");
+   TH1F *jet_n = new TH1F("Njet","",50,0,100);
+   TH1F *jet_n_L20 = new TH1F("Njet_L20", "",50,0,100);
+   TH1F *jet_n_L50 = new TH1F("Njet_L50", "",50, 0,100);
    
    
    for (Long64_t jentry=0; jentry<nentries;jentry++) {
@@ -51,8 +55,12 @@ void croot_tmp::Loop()
       nbytes += nb;
       
       std::cout <<"jentry"<< jentry <<endl;
+      
+      // AntiKt4LCTopoJets_n/pt are names declared in the header file 
       std::cout << AntiKt4LCTopoJets_n << endl;
+      jet_n ->Fill (AntiKt4LCTopoJets_n);
       fprintf (fout_n, "%i ", AntiKt4LCTopoJets_n);
+      
       
       std:: vector<float> &ptr = *AntiKt4LCTopoJets_pt;
       
@@ -61,8 +69,13 @@ void croot_tmp::Loop()
       	fprintf(fout_pt, "%i ",(int)ptr[i]);
       }
       
+      
         fprintf(fout_pt, "\n");
         std::cout << ""<<endl;
    }
     
+	TFile *f = new TFile ("output/plot.root", "recreate");
+	jet_n ->Write ();
+	f-> Close();
+
 }
