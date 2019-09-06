@@ -8,6 +8,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#include <TLorentzVector.h>
+
 void croot_tmp::Loop()
 {
 //   In a ROOT session, you can do:
@@ -37,15 +39,18 @@ void croot_tmp::Loop()
    if (fChain == 0) return;
 
    Long64_t nentries = fChain->GetEntriesFast();
-   //nentries = 200;
+   //nentries = 10;
 
    Long64_t nbytes = 0, nb = 0;
    
    FILE *fout_pt = fopen("output/ZvvHbb_AntiKt4LCTopoJets_pt.dat", "w");
    FILE *fout_n = fopen("output/ZvvHbb_AntiKt4LCTopoJets_n.dat", "w");
+   FILE *fout_m = fopen("output/ZvvHbb_AntiKt4LCTopoJets_m.dat", "w");
+   
    TH1F *jet_n = new TH1F("Njet","",50,0,70);
    TH1F *jet_n_L20 = new TH1F("Njet_L20", "",50,0,70);
    TH1F *jet_n_L50 = new TH1F("Njet_L50", "",50, 0,70);
+   TH1F *mjj = new TH1F ("mjj_ZvvHbb125","", 50, 0, 600);
    
    
    for (Long64_t jentry=0; jentry<nentries; jentry++) {
@@ -54,7 +59,7 @@ void croot_tmp::Loop()
       nb = fChain->GetEntry(jentry);   
       nbytes += nb;
       
-      std::cout <<"jentry"<< jentry <<endl;
+      std::cout <<"jentry------------"<< jentry <<endl;
       
       // AntiKt4LCTopoJets_n/pt are names declared in the header file 
       std::cout << AntiKt4LCTopoJets_n << endl;
@@ -62,15 +67,26 @@ void croot_tmp::Loop()
       fprintf (fout_n, "%i ", AntiKt4LCTopoJets_n);
       
       std:: vector<float> &ptr = *AntiKt4LCTopoJets_pt;
+      std:: vector<float> &mr = *AntiKt4LCTopoJets_m;
+      std:: vector<float> &etar = *AntiKt4LCTopoJets_eta;
+      std:: vector<float> &phir = *AntiKt4LCTopoJets_phi;
+      std:: vector<TLorentzVector> jetlist; 
       
         
       // Fill jet_number_L histograms if the event has at least one jet with pt larger than 30/50 GeV
       int L30 = 0;
       int L50 = 0;
       
+      //Loop through each jet in one event
       for (int i =0; i< AntiKt4LCTopoJets_n; i++) {
+        TLorentzVector jet;
+        jet.SetPtEtaPhiM (ptr[i], etar[i], phir[i], mr[i]);
+        jetlist.push_back (jet);
+        
       	std:: cout <<"pt" <<ptr[i] << ",  ";
+      	std:: cout <<"M" <<mr[i] << ",  ";
       	fprintf(fout_pt, "%i ",(int)ptr[i]);
+      	fprintf(fout_m, "%i ", (int)mr[i]);
       	
       	if ((int)ptr[i] > 30000) L30+=1;
       	if ((int)ptr[i] > 50000) L50+=1;
@@ -78,20 +94,29 @@ void croot_tmp::Loop()
       
       if (L30 > 0) jet_n_L20 ->Fill (L30);
       if (L50 > 0) jet_n_L50 ->Fill (L50);
+      mjj ->Fill ( (jetlist[0]+ jetlist[1]).M()/1000 );
       
-      cout <<"" <<endl;
-      cout << ": L30 "<< L30 << " L50 " << L50 << ",  Out of total number " << AntiKt4LCTopoJets_n << endl;
+      //cout <<"" <<endl;
+      //cout << ": L30 "<< L30 << " L50 " << L50 << ",  Out of total number " << AntiKt4LCTopoJets_n <<", mjj: " << (jetlist[0] + jetlist[1]).M()/1000 << endl;
+      //cout << "mjj details " << jetlist[0].Pt() << " " << jetlist[0].M() << " " << jetlist[1].Pt() << " "<< jetlist[1].M() << " " <<jetlist[0].M() + jetlist[1].M()<< endl;
+      
       L30 = 0 ; L50 = 0;
       
       fprintf(fout_pt, "\n");
+      fprintf(fout_m, "\n");
       std::cout << ""<<endl;
       
    }
     
-	TFile *f = new TFile ("output/plot.root", "recreate");
+    jet_n -> SetLineColor(1);
+    jet_n_L20 -> SetLineColor(2);
+    jet_n_L50 -> SetLineColor(3);
+    
+    TFile *f = new TFile ("output/plot.root", "recreate");
 	jet_n ->Write ();
 	jet_n_L20 ->Write ();
 	jet_n_L50 ->Write ();
+	mjj -> Write ();
 	f-> Close();
 
 }
