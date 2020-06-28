@@ -68,6 +68,8 @@ void croot_tmp::Loop()
       std::cout << AntiKt4LCTopoJets_n << endl;
       jet_n ->Fill (AntiKt4LCTopoJets_n);
       fprintf (fout_n, "%i ", AntiKt4LCTopoJets_n);
+      
+      //Writing to binary pt
       fwrite(&AntiKt4LCTopoJets_n, sizeof(int), 1, fout_n_b);
       
       std:: vector<float> &ptr = *AntiKt4LCTopoJets_pt;
@@ -92,7 +94,7 @@ void croot_tmp::Loop()
       	fprintf(fout_pt, "%i ",(int)ptr[i]);
       	fprintf(fout_m, "%i ", (int)mr[i]);
           
-        //Writing to binary files
+        //Writing to binary pt
         fwrite(&ptr[i], sizeof(float), 1, fout_pt_b);
       	
       	if ((int)ptr[i] > 30000) L30+=1;
@@ -114,6 +116,12 @@ void croot_tmp::Loop()
        std::cout << ""<<endl;
       
    }
+    
+    fclose(fout_pt);
+    fclose(fout_n);
+    fclose(fout_m);
+    fclose(fout_pt_b);
+    fclose(fout_n_b);
     
     jet_n -> SetLineColor(1);
     jet_n_L20 -> SetLineColor(2);
