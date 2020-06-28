@@ -39,13 +39,17 @@ void croot_tmp::Loop()
    if (fChain == 0) return;
 
    Long64_t nentries = fChain->GetEntriesFast();
-   //nentries = 10;
+   nentries = 20;
 
    Long64_t nbytes = 0, nb = 0;
    
    FILE *fout_pt = fopen("output/ZvvHbb_AntiKt4LCTopoJets_pt.dat", "w");
    FILE *fout_n = fopen("output/ZvvHbb_AntiKt4LCTopoJets_n.dat", "w");
    FILE *fout_m = fopen("output/ZvvHbb_AntiKt4LCTopoJets_m.dat", "w");
+
+   //writing binary files
+   FILE *fout_pt_b = fopen("output/Jets_pt.coe", "wb");
+   FILE *fout_n_b = fopen("output/Jets_n.coe", "wb");
    
    TH1F *jet_n = new TH1F("Njet","",50,0,70);
    TH1F *jet_n_L20 = new TH1F("Njet_L20", "",50,0,70);
@@ -83,28 +87,32 @@ void croot_tmp::Loop()
         jet.SetPtEtaPhiM (ptr[i], etar[i], phir[i], mr[i]);
         jetlist.push_back (jet);
         
-      	//std:: cout <<"pt" <<ptr[i] << ",  ";
+      	std:: cout <<"pt" <<ptr[i] << ",  ";
       	//std:: cout <<"M" <<mr[i] << ",  ";
       	fprintf(fout_pt, "%i ",(int)ptr[i]);
       	fprintf(fout_m, "%i ", (int)mr[i]);
+          
+        //Writing to binary files
+        fwrite(&ptr[i], sizeof(float), 1, fout_pt_b);
+        fwrite(&AntiKt4LCTopoJets_n, sizeof(int), 1, fout_n_b);
       	
       	if ((int)ptr[i] > 30000) L30+=1;
       	if ((int)ptr[i] > 50000) L50+=1;
       }
       
-      if (L30 > 0) jet_n_L20 ->Fill (L30);
-      if (L50 > 0) jet_n_L50 ->Fill (L50);
-      mjj ->Fill ( (jetlist[0]+ jetlist[1]).M()/1000 );
+        if (L30 > 0) jet_n_L20 ->Fill (L30);
+        if (L50 > 0) jet_n_L50 ->Fill (L50);
+        mjj ->Fill ( (jetlist[0]+ jetlist[1]).M()/1000 );
       
       //cout <<"" <<endl;
       //cout << ": L30 "<< L30 << " L50 " << L50 << ",  Out of total number " << AntiKt4LCTopoJets_n <<", mjj: " << (jetlist[0] + jetlist[1]).M()/1000 << endl;
       //cout << "mjj details " << jetlist[0].Pt() << " " << jetlist[0].M() << " " << jetlist[1].Pt() << " "<< jetlist[1].M() << " " <<jetlist[0].M() + jetlist[1].M()<< endl;
       
-      L30 = 0 ; L50 = 0;
+       L30 = 0 ; L50 = 0;
       
-      fprintf(fout_pt, "\n");
-      fprintf(fout_m, "\n");
-      std::cout << ""<<endl;
+       fprintf(fout_pt, "\n");
+       fprintf(fout_m, "\n");
+       std::cout << ""<<endl;
       
    }
     
