@@ -14,7 +14,7 @@ int main_tmp (){
 	
 	croot_tmp event_object;
 	event_object.Loop();
-	cout << "Events processing finished"<<endl;
+	cout << "Events processing finished."<<endl;
 	
 	return 0;
 
