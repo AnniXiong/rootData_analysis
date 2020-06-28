@@ -83,8 +83,8 @@ void croot_tmp::Loop()
         jet.SetPtEtaPhiM (ptr[i], etar[i], phir[i], mr[i]);
         jetlist.push_back (jet);
         
-      	std:: cout <<"pt" <<ptr[i] << ",  ";
-      	std:: cout <<"M" <<mr[i] << ",  ";
+      	//std:: cout <<"pt" <<ptr[i] << ",  ";
+      	//std:: cout <<"M" <<mr[i] << ",  ";
       	fprintf(fout_pt, "%i ",(int)ptr[i]);
       	fprintf(fout_m, "%i ", (int)mr[i]);
       	
@@ -118,5 +118,36 @@ void croot_tmp::Loop()
 	jet_n_L50 ->Write ();
 	mjj -> Write ();
 	f-> Close();
+	
+	
+	//stacking the Jet_number plots
+	string hist_obj1 = "Njet";
+	string hist_obj2 = "Njet_L20";
+	string hist_obj3 = "Njet_L50";
+	
+	THStack *stack = new THStack("hs","");
+	TFile* file = new TFile ("output/plot.root");
+    TH1F* h1 = (TH1F*) gDirectory->Get(hist_obj1.c_str());
+    stack->Add(h1);
+    TH1F* h2 = (TH1F*) gDirectory->Get(hist_obj2.c_str());
+    stack->Add(h2);
+    TH1F* h3 = (TH1F*) gDirectory->Get(hist_obj3.c_str());
+    stack->Add(h3);
+    
+    TCanvas *canvas = new TCanvas("canvas","canvas",10,10,600,400);
+    stack->Draw ("nostack");
+    
+    TLegend *legend2 = new TLegend(0.7,.75,.9,.9,0);
+    legend2->AddEntry(h1,"Number of jets");
+    legend2->AddEntry(h2,"Njets with pt > 30GeV");
+    legend2->AddEntry(h3,"Njets with pt > 50GeV");
+    legend2->Draw();
+    
+    stack->GetXaxis()->SetTitle("number of jets");
+    stack->GetYaxis()->SetTitle("# of events");
+    canvas-> Modified();
+    
+    TFile *f1 = new TFile ("output/plot_stack.root", "recreate");
+    canvas ->Write();
 
 }
