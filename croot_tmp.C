@@ -62,13 +62,13 @@ void croot_tmp::Loop()
       if (ientry < 0) break;
       nb = fChain->GetEntry(jentry);   
       nbytes += nb;
-      
       std::cout <<"jentry------------ "<< jentry <<endl;
       
       // AntiKt4LCTopoJets_n/pt are names declared in the header file 
       std::cout << AntiKt4LCTopoJets_n << endl;
       jet_n ->Fill (AntiKt4LCTopoJets_n);
       fprintf (fout_n, "%i ", AntiKt4LCTopoJets_n);
+      fwrite(&AntiKt4LCTopoJets_n, sizeof(int), 1, fout_n_b);
       
       std:: vector<float> &ptr = *AntiKt4LCTopoJets_pt;
       std:: vector<float> &mr = *AntiKt4LCTopoJets_m;
@@ -94,7 +94,6 @@ void croot_tmp::Loop()
           
         //Writing to binary files
         fwrite(&ptr[i], sizeof(float), 1, fout_pt_b);
-        fwrite(&AntiKt4LCTopoJets_n, sizeof(int), 1, fout_n_b);
       	
       	if ((int)ptr[i] > 30000) L30+=1;
       	if ((int)ptr[i] > 50000) L50+=1;
@@ -104,9 +103,9 @@ void croot_tmp::Loop()
         if (L50 > 0) jet_n_L50 ->Fill (L50);
         mjj ->Fill ( (jetlist[0]+ jetlist[1]).M()/1000 );
       
-      //cout <<"" <<endl;
-      //cout << ": L30 "<< L30 << " L50 " << L50 << ",  Out of total number " << AntiKt4LCTopoJets_n <<", mjj: " << (jetlist[0] + jetlist[1]).M()/1000 << endl;
-      //cout << "mjj details " << jetlist[0].Pt() << " " << jetlist[0].M() << " " << jetlist[1].Pt() << " "<< jetlist[1].M() << " " <<jetlist[0].M() + jetlist[1].M()<< endl;
+        //cout <<"" <<endl;
+        //cout << ": L30 "<< L30 << " L50 " << L50 << ",  Out of total number " << AntiKt4LCTopoJets_n <<", mjj: " << (jetlist[0] + jetlist[1]).M()/1000 << endl;
+        //cout << "mjj details " << jetlist[0].Pt() << " " << jetlist[0].M() << " " << jetlist[1].Pt() << " "<< jetlist[1].M() << " " <<jetlist[0].M() + jetlist[1].M()<< endl;
       
        L30 = 0 ; L50 = 0;
       
