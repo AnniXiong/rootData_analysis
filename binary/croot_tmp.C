@@ -56,7 +56,14 @@ void croot_tmp::Loop() {
       std:: vector<TLorentzVector> jetlist; 
       
       
+      //so that the binary data can be written from this array to file
+      int max_jet_number = 40; //can process at most 50 jets for event
+      float pt_tmp[max_jet_number];
+      float place_holder = 0.0;
+      
+      //load the tmp pt array
       //Loop through each jet in one event
+      /*
       for (int i =0; i< AntiKt4LCTopoJets_n; i++) {
         TLorentzVector jet;
         jet.SetPtEtaPhiM (ptr[i], etar[i], phir[i], mr[i]);
@@ -72,14 +79,44 @@ void croot_tmp::Loop() {
       	
       }
       
-        mjj ->Fill ( (jetlist[0]+ jetlist[1]).M()/1000 );
+      if (AntiKt4LCTopoJets_n >= max_jet_number){
+      	for (int i =0; i< max_jet_number; i++) {
+        //Writing to binary pt
+        fwrite(&ptr[i], sizeof(float), 1, fout_pt_b);
+        }
+        cout << "some are cut off"<<endl;
+      } else if (AntiKt4LCTopoJets_n < max_jet_number){
+      		for (int i =0; i< max_jet_number; i++) {
+      			if (i < AntiKt4LCTopoJets_n)
+        		//Writing to binary pt
+        		fwrite(&ptr[i], sizeof(float), 1, fout_pt_b);
+        		}else if(i > AntiKt4LCTopoJets_n){
+        			fwrite(&place_holder, sizeof(float), 1, fout_pt_b);
+        		}
+      		cout <<"extra resources, add zeros"<<endl;
       
+      }
+      */
+      for (int i =0; i< max_jet_number; i++) {
+      	if (AntiKt4LCTopoJets_n >= max_jet_number){
+      		fwrite(&ptr[i], sizeof(float), 1, fout_pt_b);
+      	} else if (AntiKt4LCTopoJets_n < max_jet_number){
+      		if (i < AntiKt4LCTopoJets_n){
+        		//Writing to binary pt
+        		fwrite(&ptr[i], sizeof(float), 1, fout_pt_b);
+        	} else if(i > AntiKt4LCTopoJets_n){
+        		fwrite(&place_holder, sizeof(float), 1, fout_pt_b);
+        	}
+        }
+      }
       
-        fprintf(fout_pt, "\n");
-        fprintf(fout_m, "\n");
-        std::cout << ""<<endl;
+      // mjj ->Fill ( (jetlist[0]+ jetlist[1]).M()/1000 );
       
-    }
+      fprintf(fout_pt, "\n");
+      fprintf(fout_m, "\n");
+      std::cout << ""<<endl;
+
+      }
     
      fclose(fout_pt);
      fclose(fout_n);
