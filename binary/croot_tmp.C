@@ -57,46 +57,28 @@ void croot_tmp::Loop() {
       
       
       //so that the binary data can be written from this array to file
-      int max_jet_number = 40; //can process at most 50 jets for event
+      int max_jet_number = 30; //can process at most 50 jets for event
       float pt_tmp[max_jet_number];
       float place_holder = 0.0;
       
-      //load the tmp pt array
       //Loop through each jet in one event
-      /*
       for (int i =0; i< AntiKt4LCTopoJets_n; i++) {
         TLorentzVector jet;
         jet.SetPtEtaPhiM (ptr[i], etar[i], phir[i], mr[i]);
         jetlist.push_back (jet);
         
-      	std:: cout <<"pt" <<ptr[i] << ",  ";
+      	std:: cout <<ptr[i] << ",  ";
       	//std:: cout <<"M" <<mr[i] << ",  ";
       	fprintf(fout_pt, "%i ",(int)ptr[i]);
       	fprintf(fout_m, "%i ", (int)mr[i]);
-          
-        //Writing to binary pt
-        fwrite(&ptr[i], sizeof(float), 1, fout_pt_b);
       	
       }
-      
-      if (AntiKt4LCTopoJets_n >= max_jet_number){
-      	for (int i =0; i< max_jet_number; i++) {
-        //Writing to binary pt
-        fwrite(&ptr[i], sizeof(float), 1, fout_pt_b);
-        }
-        cout << "some are cut off"<<endl;
-      } else if (AntiKt4LCTopoJets_n < max_jet_number){
-      		for (int i =0; i< max_jet_number; i++) {
-      			if (i < AntiKt4LCTopoJets_n)
-        		//Writing to binary pt
-        		fwrite(&ptr[i], sizeof(float), 1, fout_pt_b);
-        		}else if(i > AntiKt4LCTopoJets_n){
-        			fwrite(&place_holder, sizeof(float), 1, fout_pt_b);
-        		}
-      		cout <<"extra resources, add zeros"<<endl;
-      
-      }
-      */
+
+	  // Writing out fixed pt arries (FPGA needs to know exactly how much resources 
+	  // to allocate before processing an evnt)
+	  // if vector is longer than max_jet_number--> some pt's are cut off
+	  // if vector is shorter than max_jet_number--> FPGA's will allocate extra reso, add zeros
+	  
       for (int i =0; i< max_jet_number; i++) {
       	if (AntiKt4LCTopoJets_n >= max_jet_number){
       		fwrite(&ptr[i], sizeof(float), 1, fout_pt_b);
@@ -104,12 +86,11 @@ void croot_tmp::Loop() {
       		if (i < AntiKt4LCTopoJets_n){
         		//Writing to binary pt
         		fwrite(&ptr[i], sizeof(float), 1, fout_pt_b);
-        	} else if(i > AntiKt4LCTopoJets_n){
+        	} else if(i >= AntiKt4LCTopoJets_n){
         		fwrite(&place_holder, sizeof(float), 1, fout_pt_b);
         	}
         }
       }
-      
       // mjj ->Fill ( (jetlist[0]+ jetlist[1]).M()/1000 );
       
       fprintf(fout_pt, "\n");
