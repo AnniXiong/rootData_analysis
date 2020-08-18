@@ -39,7 +39,7 @@ void croot_tmp::Loop()
    if (fChain == 0) return;
 
    Long64_t nentries = fChain->GetEntriesFast();
-   //nentries = 3;
+   //nentries = 30;
 
    Long64_t nbytes = 0, nb = 0;
 
@@ -48,6 +48,8 @@ void croot_tmp::Loop()
    TH1F *jet_n_L50 = new TH1F("Njet_L50", "",50, 0,70);
    TH1F *mjj = new TH1F ("mjj_ZvvHbb125","", 50, 0, 600);
    TH1F *mm_all = new TH1F ("mm_ZvvHbb125","", 50, 0, 600);
+   TH1F *mm_lead = new TH1F ("mm_lead_ZvvHbb125","", 50, 0, 600);
+   TH2 *mjj_mm_lead = new TH2D ("h2","2D histo",200,0,600,200,0,600); 
    
    
    for (Long64_t jentry=0; jentry<nentries; jentry++) {
@@ -55,10 +57,10 @@ void croot_tmp::Loop()
       if (ientry < 0) break;
       nb = fChain->GetEntry(jentry);   
       nbytes += nb;
-      std::cout <<"jentry------------ "<< jentry <<endl;
+      std::cout <<"jentry------------ "<< jentry;
       
       // AntiKt4LCTopoJets_n/pt are names declared in the header file 
-      std::cout << AntiKt4LCTopoJets_n << endl;
+      std::cout << AntiKt4LCTopoJets_n <<" jets"<< endl;
       jet_n ->Fill (AntiKt4LCTopoJets_n);
       
       
@@ -78,8 +80,8 @@ void croot_tmp::Loop()
         jet.SetPtEtaPhiM (ptr[i], etar[i], phir[i], mr[i]);
         jetlist.push_back (jet);
         
-      	std:: cout <<"pt" <<ptr[i] << ",  ";
-      	std:: cout <<"M: " <<mr[i] << ",  ";
+      	//std:: cout <<"pt" <<ptr[i] << ",  ";
+      	//std:: cout <<"M: " <<mr[i] << ",  ";
           
       	if ((int)ptr[i] > 30000) L30+=1;
       	if ((int)ptr[i] > 50000) L50+=1;
@@ -92,31 +94,52 @@ void croot_tmp::Loop()
         cout <<"" <<endl;
         //cout << ": L30 "<< L30 << " L50 " << L50 << ",  Out of total number " << AntiKt4LCTopoJets_n <<", mjj: " << (jetlist[0] + jetlist[1]).M()/1000 << endl;
         
-        cout << "mjj details " <<"pt1: " <<jetlist[0].Pt() << " " <<"m1: " <<jetlist[0].M() << " " <<"pt2: "<< jetlist[1].Pt() << " "<<"m2: "<< jetlist[1].M() << " " <<jetlist[0].M() + jetlist[1].M()<< endl;
+        //cout << "mjj details " <<"pt1: " <<jetlist[0].Pt() << " " <<"m1: " <<jetlist[0].M() << " " <<"pt2: "<< jetlist[1].Pt() << " "<<"m2: "<< jetlist[1].M() << " " <<jetlist[0].M() + jetlist[1].M()<< endl;
         cout <<"" <<endl;
-        cout << "mjj_jetlist: "<<(jetlist[0]+ jetlist[1]).M()/1000. <<endl;
+        cout << "mjj with lead pt: "<<(jetlist[0]+ jetlist[1]).M()/1000. <<endl;
         cout <<""<<endl;
       
-      
         L30 = 0 ; L50 = 0;
-        std::cout << ""<<endl;
        
        //Calculate all combinations of MM
-        std::cout << "-----------"<<endl;
+       // std::cout << "-----------"<<endl;
    	   float MSum_GeV;
        for (int j=0; j<mr.size()-1;j++){
       	 for (int k=1; k<mr.size()-j;k++){
         	MSum_GeV = (jetlist[j]+jetlist[j+k]).M()/1000.;
         	//if((ptr[j]>30000) && (ptr[j+k]>30000)){mm_all->Fill(MSum/1000.);}
         	mm_all->Fill(MSum_GeV);
-            std::cout << MSum_GeV <<", ";
+            //std::cout << MSum_GeV <<", ";
         } 
        }
-      std::cout << "-----------"<<endl;
+      //std::cout << "-----------"<<endl;
       
+      //Calculate jet Leading MM 
+      int first_index, second_index;
+      float first_max, second_max;
+      
+      first_max = *max_element(mr.begin(), mr.end());
+      auto it = find(mr.begin(), mr.end(), first_max);
+    
+      // If element was found 
+      if (it != mr.end()) { 
+          first_index = distance(mr.begin(), it); 
+          //erase the element from the array
+          mr[first_index] = -1.;
+      } else { cout << "-1" << endl; } 
+        
+      //find the 2nd max
+      second_max = *max_element(mr.begin(), mr.end());
+      second_index = distance(mr.begin(), find(mr.begin(), mr.end(), second_max));
+      mm_lead->Fill( (jetlist[first_index]+jetlist[second_index]).M()/1000.);
+      
+      //cout << "Max Ele = "<< first_max <<",at pos: "<< first_index<<" ,sec max: " << second_max <<" ,at pos: "<< second_index<<endl; 
+      //cout << "m_lead_jj" << (jetlist[first_index]+jetlist[second_index]).M()/1000. <<endl;
+      std::cout << "-----------"<<endl;  
+      
+      mjj_mm_lead->Fill((jetlist[0]+ jetlist[1]).M()/1000., (jetlist[first_index]+jetlist[second_index]).M()/1000.);
    }
    
-      
     jet_n -> SetLineColor(1);
     jet_n_L20 -> SetLineColor(2);
     jet_n_L50 -> SetLineColor(3);
@@ -127,6 +150,9 @@ void croot_tmp::Loop()
 	jet_n_L50 ->Write ();
 	mjj -> Write ();
 	mm_all->Write();
+	mm_lead->Write();
+	mjj_mm_lead->Write();
+	
 	f-> Close();
 	
 	
