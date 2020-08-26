@@ -4,6 +4,8 @@
 #include <TStyle.h>
 #include <TCanvas.h>
 #include <TH1F.h>
+#include <TH2F.h>
+#include <TGraph.h>
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -12,178 +14,186 @@
 
 void croot_tmp::Loop()
 {
-//   In a ROOT session, you can do:
-//      root> .L croot_tmp.C
-//      root> croot_tmp t
-//      root> t.GetEntry(12); // Fill t data members with entry number 12
-//      root> t.Show();       // Show values of entry 12
-//      root> t.Show(16);     // Read and show values of entry 16
-//      root> t.Loop();       // Loop on all entries
-//
 
-//     This is the loop skeleton where:
-//    jentry is the global entry number in the chain
-//    ientry is the entry number in the current Tree
-//  Note that the argument to GetEntry must be:
-//    jentry for TChain::GetEntry
-//    ientry for TTree::GetEntry and TBranch::GetEntry
-//
-//       To read only selected branches, Insert statements like:
-// METHOD1:
     fChain->SetBranchStatus("*",0);  // disable all branches
     fChain->SetBranchStatus("AntiKt4LCTopoJets_*",1);  // activate branchname
     
-// METHOD2: replace line
-//    fChain->GetEntry(jentry);       //read all branches
-//by  b_branchname->GetEntry(ientry); //read only this branch
-   if (fChain == 0) return;
+    if (fChain == 0) return;
 
-   Long64_t nentries = fChain->GetEntriesFast();
-   //nentries = 30;
-
-   Long64_t nbytes = 0, nb = 0;
-
-   TH1F *jet_n = new TH1F("Njet","",50,0,70);
-   TH1F *jet_n_L20 = new TH1F("Njet_L20", "",50,0,70);
-   TH1F *jet_n_L50 = new TH1F("Njet_L50", "",50, 0,70);
-   TH1F *mjj = new TH1F ("mjj_ZvvHbb125","", 50, 0, 600);
-   TH1F *mm_all = new TH1F ("mm_ZvvHbb125","", 50, 0, 600);
-   TH1F *mm_lead = new TH1F ("mm_lead_ZvvHbb125","", 50, 0, 600);
-   TH2 *mjj_mm_lead = new TH2D ("h2","2D histo",200,0,600,200,0,600); 
+    Long64_t nentries = fChain->GetEntriesFast();
+    //nentries = 2;
+    Long64_t nbytes = 0, nb = 0;
+  
+    //histogram definition
+    TH1F *jet_n = new TH1F("Njet","",70,0,70);
+    TH1F *jet_n_Ptcut_30 = new TH1F("Njet_Ptcut_30","",70,0,70);
+   
+    TH1F *jet_n_L20 = new TH1F("Njet_L20", "",70,0,70);
+    TH1F *jet_n_L50 = new TH1F("Njet_L50", "",70, 0,70);
+    TH1F *mjj = new TH1F ("mjj_ZvvHbb125","", 100, 0, 800);
+    TH1F *mm_all = new TH1F ("mm_all_ZvvHbb125","", 100, 0, 800);
+    TH1F *mm_lead = new TH1F ("mm_lead_ZvvHbb125","", 100, 0, 800);
+    TH1F *pt_jj = new TH1F ("pt_jj_ZvvHbb125","", 50, 0, 600);
+    TH1F *eta_jj = new TH1F ("eta_jj_ZvvHbb125","", 50, -7, 7);
+    TH1F *phi_jj = new TH1F ("phi_jj_ZvvHbb125","", 50, -3.5, 3.5);
+    
+    Float_t mjj_array[nentries];
+    Float_t mm_array[nentries];
+    
    
    
-   for (Long64_t jentry=0; jentry<nentries; jentry++) {
-      Long64_t ientry = LoadTree(jentry);
-      if (ientry < 0) break;
-      nb = fChain->GetEntry(jentry);   
-      nbytes += nb;
-      std::cout <<"jentry------------ "<< jentry;
+    for (Long64_t jentry=0; jentry<nentries; jentry++) {
+       
+       // Fill jet_number_L histograms if the event has at least one jet with pt larger than 30/50 GeV
+       int L30 = 0;
+       int L50 = 0;
+       L30 = 0 ; L50 = 0;
+       int pt_cut = 30000;
+       float MSum_GeV;
+       Int_t jet_index[AntiKt4LCTopoJets_n][2];
+    
+       Long64_t ientry = LoadTree(jentry);
+       if (ientry < 0) break;
+       nb = fChain->GetEntry(jentry);   
+       nbytes += nb;
       
-      // AntiKt4LCTopoJets_n/pt are names declared in the header file 
-      std::cout << AntiKt4LCTopoJets_n <<" jets"<< endl;
-      jet_n ->Fill (AntiKt4LCTopoJets_n);
-      
-      
-      std:: vector<float> &ptr = *AntiKt4LCTopoJets_pt;
-      std:: vector<float> &mr = *AntiKt4LCTopoJets_m;
-      std:: vector<float> &etar = *AntiKt4LCTopoJets_eta;
-      std:: vector<float> &phir = *AntiKt4LCTopoJets_phi;
-      std:: vector<TLorentzVector> jetlist; 
-      
-      // Fill jet_number_L histograms if the event has at least one jet with pt larger than 30/50 GeV
-      int L30 = 0;
-      int L50 = 0;
-      
-      //Loop through each jet in one event
+       std:: vector<float> &ptr = *AntiKt4LCTopoJets_pt;
+       std:: vector<float> &mr = *AntiKt4LCTopoJets_m;
+       std:: vector<float> &etar = *AntiKt4LCTopoJets_eta;
+       std:: vector<float> &phir = *AntiKt4LCTopoJets_phi;
+       std:: vector<TLorentzVector> jetlist; 
+       std:: vector<float> mm_list;
+         
+      //prepare TLorentzVector for each jet in the event
       for (int i =0; i< AntiKt4LCTopoJets_n; i++) {
         TLorentzVector jet;
         jet.SetPtEtaPhiM (ptr[i], etar[i], phir[i], mr[i]);
         jetlist.push_back (jet);
-        
-      	//std:: cout <<"pt" <<ptr[i] << ",  ";
-      	//std:: cout <<"M: " <<mr[i] << ",  ";
           
       	if ((int)ptr[i] > 30000) L30+=1;
       	if ((int)ptr[i] > 50000) L50+=1;
+      	std:: cout <<"pt" <<ptr[i] << ",  ";
+      	//std:: cout <<"M: " <<mr[i] << ",  ";
       }
-      
+      	cout <<"" <<endl;
         if (L30 > 0) jet_n_L20 ->Fill (L30);
         if (L50 > 0) jet_n_L50 ->Fill (L50);
-        mjj ->Fill ( (jetlist[0]+ jetlist[1]).M()/1000. );
-      
-        cout <<"" <<endl;
-        //cout << ": L30 "<< L30 << " L50 " << L50 << ",  Out of total number " << AntiKt4LCTopoJets_n <<", mjj: " << (jetlist[0] + jetlist[1]).M()/1000 << endl;
         
-        //cout << "mjj details " <<"pt1: " <<jetlist[0].Pt() << " " <<"m1: " <<jetlist[0].M() << " " <<"pt2: "<< jetlist[1].Pt() << " "<<"m2: "<< jetlist[1].M() << " " <<jetlist[0].M() + jetlist[1].M()<< endl;
-        cout <<"" <<endl;
-        cout << "mjj with lead pt: "<<(jetlist[0]+ jetlist[1]).M()/1000. <<endl;
-        cout <<""<<endl;
-      
-        L30 = 0 ; L50 = 0;
-       
-       //Calculate all combinations of MM
-       // std::cout << "-----------"<<endl;
-   	   float MSum_GeV;
-       for (int j=0; j<mr.size()-1;j++){
-      	 for (int k=1; k<mr.size()-j;k++){
-        	MSum_GeV = (jetlist[j]+jetlist[j+k]).M()/1000.;
-        	//if((ptr[j]>30000) && (ptr[j+k]>30000)){mm_all->Fill(MSum/1000.);}
-        	mm_all->Fill(MSum_GeV);
-            //std::cout << MSum_GeV <<", ";
+        // AntiKt4LCTopoJets_n/pt are names declared in the header file 
+        jet_n ->Fill (AntiKt4LCTopoJets_n);
+        if((jetlist[0].Pt()>pt_cut) && (jetlist[1].Pt()>pt_cut)){mjj ->Fill ( (jetlist[0]+ jetlist[1]).M()/1000. );}
+        mjj_array[jentry] = (jetlist[0]+ jetlist[1]).M()/1000.;
+        pt_jj->Fill((jetlist[0]+ jetlist[1]).Pt()/1000.);
+        eta_jj->Fill((jetlist[0]+ jetlist[1]).Eta());
+        phi_jj->Fill((jetlist[0]+ jetlist[1]).Phi());
+        
+        //Calculate all combinations of MM
+        for (int j=0; j<mr.size()-1;j++){
+      	  for (int k=1; k<mr.size()-j;k++){
+      	  	 MSum_GeV = (jetlist[j]+jetlist[j+k]).M()/1000.;
+      	  	 
+        	 if((jetlist[j].Pt()>pt_cut) && (jetlist[j+k].Pt()>pt_cut)){
+        	 	mm_all->Fill(MSum_GeV);
+        	 	mm_list.push_back(MSum_GeV);
+        	 }else{
+        	 	mm_list.push_back(-1);
+        	 
+        	 }
+             std::cout << MSum_GeV <<", ";
+           } 
+         	 std::cout << ""<<endl;
+         }
+    
+    
+    	for (const float & va: mm_list ){cout << va << ", ";}
+
+
+        //Calculate largest combined MM 
+        float first_max = *max_element(mm_list.begin(), mm_list.end());
+        auto it = find(mm_list.begin(), mm_list.end(), first_max);
+    
+        // If element was found, find the position of the element
+        if (it != mm_list.end()) { 
+            int first_index = distance(mm_list.begin(), it); 
+        } else { 
+      	    cout << "not found, -1" << endl; 
         } 
-       }
-      //std::cout << "-----------"<<endl;
       
-      //Calculate jet Leading MM 
-      int first_index, second_index;
-      float first_max, second_max;
-      
-      first_max = *max_element(mr.begin(), mr.end());
-      auto it = find(mr.begin(), mr.end(), first_max);
-    
-      // If element was found 
-      if (it != mr.end()) { 
-          first_index = distance(mr.begin(), it); 
-          //erase the element from the array
-          mr[first_index] = -1.;
-      } else { cout << "-1" << endl; } 
+        if (first_max >0){mm_lead->Fill(first_max);}
+        cout << "first max: " << first_max <<endl;
+        mm_array[jentry]= first_max;
         
-      //find the 2nd max
-      second_max = *max_element(mr.begin(), mr.end());
-      second_index = distance(mr.begin(), find(mr.begin(), mr.end(), second_max));
-      mm_lead->Fill( (jetlist[first_index]+jetlist[second_index]).M()/1000.);
+        std::cout <<"Event ------------"<< AntiKt4LCTopoJets_n <<" jets  "<<endl;
+        //cout <<"" <<endl;
+        //cout << ": L30 "<< L30 << " L50 " << L50 << ",  Out of total number " << AntiKt4LCTopoJets_n <<", mjj: " << (jetlist[0] + jetlist[1]).M()/1000 << endl;
+        //cout << "mjj details " <<"pt1: " <<jetlist[0].Pt() << " " <<"m1: " <<jetlist[0].M() << " " <<"pt2: "<< jetlist[1].Pt() << " "<<"m2: "<< jetlist[1].M() << " " <<jetlist[0].M() + jetlist[1].M()<< endl;
+        //cout <<"" <<endl;
+        //cout << "mjj with lead pt: "<<(jetlist[0]+ jetlist[1]).M()/1000. <<endl;
+        //cout <<""<<endl;
+        //cout << "Max Ele = "<< first_max <<",at pos: "<< first_index<<" ,sec max: " << second_max <<" ,at pos: "<< second_index<<endl; 
+        //cout << (jetlist[0]+ jetlist[1]).M()/1000.  <<", " ;
+        //std::cout << "-----------"<<endl;  
       
-      //cout << "Max Ele = "<< first_max <<",at pos: "<< first_index<<" ,sec max: " << second_max <<" ,at pos: "<< second_index<<endl; 
-      //cout << "m_lead_jj" << (jetlist[first_index]+jetlist[second_index]).M()/1000. <<endl;
-      std::cout << "-----------"<<endl;  
-      
-      mjj_mm_lead->Fill((jetlist[0]+ jetlist[1]).M()/1000., (jetlist[first_index]+jetlist[second_index]).M()/1000.);
-   }
+   } //end of event loop
    
-    jet_n -> SetLineColor(1);
-    jet_n_L20 -> SetLineColor(2);
-    jet_n_L50 -> SetLineColor(3);
-    
+   
     TFile *f = new TFile ("output/plot.root", "recreate");
 	jet_n ->Write ();
 	jet_n_L20 ->Write ();
 	jet_n_L50 ->Write ();
 	mjj -> Write ();
+	pt_jj -> Write ();
+	eta_jj -> Write ();
+	phi_jj -> Write ();
 	mm_all->Write();
 	mm_lead->Write();
-	mjj_mm_lead->Write();
+	//mjj_mm_lead->Write();
+    f-> Close();
+    
+    jet_n -> SetLineColor(1);
+    jet_n_L20 -> SetLineColor(2);
+    jet_n_L50 -> SetLineColor(3);
 	
-	f-> Close();
+	//produce the scatter plot
+	TGraph *mjj_mm_lead = new TGraph(nentries, mjj_array, mm_array);
+	mjj_mm_lead->SetMarkerColor(4);
+    mjj_mm_lead->SetMarkerStyle(21);
+    mjj_mm_lead->SetTitle("Correlation plot");
+    mjj_mm_lead->GetXaxis()->SetTitle("mjj(GeV)");
+    mjj_mm_lead->GetYaxis()->SetTitle("Largest combined mass(GeV)");
+	//mjj_mm_lead->Draw("A*");
 	
 	
-	//stacking the Jet_number plots
-	string hist_obj1 = "Njet";
-	string hist_obj2 = "Njet_L20";
-	string hist_obj3 = "Njet_L50";
+	//stacking the histograms
+	string hist_obj1 = "mm_all_ZvvHbb125";
+	string hist_obj2 = "mm_lead_ZvvHbb125";
+    string hist_obj3 = "mjj_ZvvHbb125";
 	
-	THStack *stack = new THStack("hs","");
+	THStack *stack = new THStack("histo stack","");
 	TFile* file = new TFile ("output/plot.root");
     TH1F* h1 = (TH1F*) gDirectory->Get(hist_obj1.c_str());
+    h1->SetLineColor(1);
     stack->Add(h1);
     TH1F* h2 = (TH1F*) gDirectory->Get(hist_obj2.c_str());
+    h2->SetLineColor(2);
     stack->Add(h2);
     TH1F* h3 = (TH1F*) gDirectory->Get(hist_obj3.c_str());
+    h3->SetLineColor(3);
     stack->Add(h3);
-    
     TCanvas *canvas = new TCanvas("canvas","canvas",10,10,600,400);
-    stack->Draw ("nostack");
-    
+	stack->Draw ("nostack");
+	
     TLegend *legend2 = new TLegend(0.7,.75,.9,.9,0);
-    legend2->AddEntry(h1,"Number of jets");
-    legend2->AddEntry(h2,"Njets with pt > 30GeV");
-    legend2->AddEntry(h3,"Njets with pt > 50GeV");
+    legend2->AddEntry(h1,"all combination mjj");
+    legend2->AddEntry(h2,"largest combined mjj");
+    legend2->AddEntry(h3,"Lead pt mjj");
     legend2->Draw();
     
-    stack->GetXaxis()->SetTitle("number of jets");
-    stack->GetYaxis()->SetTitle("# of events");
-    canvas-> Modified();
+    //stack->GetXaxis()->SetTitle("number of jets");
+    //stack->GetYaxis()->SetTitle("# of events");
+    //canvas-> Modified();
     
-    TFile *f1 = new TFile ("output/plot_stack.root", "recreate");
-    canvas ->Write();
-
+    TFile *f1 = new TFile ("output/stack_plot.root", "recreate");
+    canvas->Write();
+    
 }
