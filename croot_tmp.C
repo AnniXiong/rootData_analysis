@@ -21,8 +21,9 @@ void croot_tmp::Loop()
     if (fChain == 0) return;
 
     Long64_t nentries = fChain->GetEntriesFast();
-    //nentries = 2;
+    //nentries = 100;
     Long64_t nbytes = 0, nb = 0;
+    int Total_numberJets = 0;
   
     //histogram definition
     TH1F *jet_n = new TH1F("Njet","",70,0,70);
@@ -30,9 +31,9 @@ void croot_tmp::Loop()
    
     TH1F *jet_n_L20 = new TH1F("Njet_L20", "",70,0,70);
     TH1F *jet_n_L50 = new TH1F("Njet_L50", "",70, 0,70);
-    TH1F *mjj = new TH1F ("mjj_ZvvHbb125","", 100, 0, 800);
-    TH1F *mm_all = new TH1F ("mm_all_ZvvHbb125","", 100, 0, 800);
-    TH1F *mm_lead = new TH1F ("mm_lead_ZvvHbb125","", 100, 0, 800);
+    TH1F *mjj = new TH1F ("mjj_ZvvHbb125","", 100, 0, 1000);
+    TH1F *mm_all = new TH1F ("mm_all_ZvvHbb125","", 100, 0, 1000);
+    TH1F *mm_lead = new TH1F ("mm_lead_ZvvHbb125","", 100, 0, 1000);
     TH1F *pt_jj = new TH1F ("pt_jj_ZvvHbb125","", 50, 0, 600);
     TH1F *eta_jj = new TH1F ("eta_jj_ZvvHbb125","", 50, -7, 7);
     TH1F *phi_jj = new TH1F ("phi_jj_ZvvHbb125","", 50, -3.5, 3.5);
@@ -40,17 +41,20 @@ void croot_tmp::Loop()
     Float_t mjj_array[nentries];
     Float_t mm_array[nentries];
     
-   
+    std:: vector<float> eta_array_pass;
+    std:: vector<float> eta_array_Nopass;
+    std:: vector<float> phi_array_pass;
+    std:: vector<float> phi_array_Nopass;
+    
    
     for (Long64_t jentry=0; jentry<nentries; jentry++) {
-       
+       std::cout <<"Event ------------"<< AntiKt4LCTopoJets_n <<" jets  "<<endl;
        // Fill jet_number_L histograms if the event has at least one jet with pt larger than 30/50 GeV
        int L30 = 0;
        int L50 = 0;
        L30 = 0 ; L50 = 0;
        int pt_cut = 30000;
        float MSum_GeV;
-       Int_t jet_index[AntiKt4LCTopoJets_n][2];
     
        Long64_t ientry = LoadTree(jentry);
        if (ientry < 0) break;
@@ -63,25 +67,42 @@ void croot_tmp::Loop()
        std:: vector<float> &phir = *AntiKt4LCTopoJets_phi;
        std:: vector<TLorentzVector> jetlist; 
        std:: vector<float> mm_list;
-         
+      
       //prepare TLorentzVector for each jet in the event
       for (int i =0; i< AntiKt4LCTopoJets_n; i++) {
         TLorentzVector jet;
         jet.SetPtEtaPhiM (ptr[i], etar[i], phir[i], mr[i]);
         jetlist.push_back (jet);
-          
-      	if ((int)ptr[i] > 30000) L30+=1;
+        
+        if ((int)ptr[i] > 30000) L30+=1;
       	if ((int)ptr[i] > 50000) L50+=1;
-      	std:: cout <<"pt" <<ptr[i] << ",  ";
-      	//std:: cout <<"M: " <<mr[i] << ",  ";
+      	
+      	//std:: cout <<"phi: " <<phir[i] << ",  ";
+      	//std:: cout <<"eta: " <<etar[i] << ",  ";
+      	
+      	
+      	
+      	if(ptr[i]>pt_cut) {
+      		eta_array_pass.push_back(etar[i]);
+       	  	phi_array_pass.push_back(phir[i]);
+       	} else {
+       		eta_array_Nopass.push_back(etar[i]);
+       		phi_array_Nopass.push_back(phir[i]);
+        }
+          
       }
+	
+        Total_numberJets+= AntiKt4LCTopoJets_n;
       	cout <<"" <<endl;
         if (L30 > 0) jet_n_L20 ->Fill (L30);
         if (L50 > 0) jet_n_L50 ->Fill (L50);
         
+
         // AntiKt4LCTopoJets_n/pt are names declared in the header file 
         jet_n ->Fill (AntiKt4LCTopoJets_n);
-        if((jetlist[0].Pt()>pt_cut) && (jetlist[1].Pt()>pt_cut)){mjj ->Fill ( (jetlist[0]+ jetlist[1]).M()/1000. );}
+        if((jetlist[0].Pt()>pt_cut) && (jetlist[1].Pt()>pt_cut)){
+        	mjj ->Fill ( (jetlist[0]+ jetlist[1]).M()/1000. );
+        }
         mjj_array[jentry] = (jetlist[0]+ jetlist[1]).M()/1000.;
         pt_jj->Fill((jetlist[0]+ jetlist[1]).Pt()/1000.);
         eta_jj->Fill((jetlist[0]+ jetlist[1]).Eta());
@@ -92,20 +113,20 @@ void croot_tmp::Loop()
       	  for (int k=1; k<mr.size()-j;k++){
       	  	 MSum_GeV = (jetlist[j]+jetlist[j+k]).M()/1000.;
       	  	 
-        	 if((jetlist[j].Pt()>pt_cut) && (jetlist[j+k].Pt()>pt_cut)){
+        	 //if((jetlist[j].Pt()>pt_cut) && (jetlist[j+k].Pt()>pt_cut)){
         	 	mm_all->Fill(MSum_GeV);
         	 	mm_list.push_back(MSum_GeV);
-        	 }else{
-        	 	mm_list.push_back(-1);
+        	 //}else{
+        	 	//mm_list.push_back(-1);
         	 
-        	 }
-             std::cout << MSum_GeV <<", ";
+        	 //}
+             //std::cout << MSum_GeV <<", ";
            } 
-         	 std::cout << ""<<endl;
+         	 //std::cout << ""<<endl;
          }
     
     
-    	for (const float & va: mm_list ){cout << va << ", ";}
+    	//for (const float & va: mm_list ){cout << va << ", ";}
 
 
         //Calculate largest combined MM 
@@ -123,7 +144,7 @@ void croot_tmp::Loop()
         cout << "first max: " << first_max <<endl;
         mm_array[jentry]= first_max;
         
-        std::cout <<"Event ------------"<< AntiKt4LCTopoJets_n <<" jets  "<<endl;
+        
         //cout <<"" <<endl;
         //cout << ": L30 "<< L30 << " L50 " << L50 << ",  Out of total number " << AntiKt4LCTopoJets_n <<", mjj: " << (jetlist[0] + jetlist[1]).M()/1000 << endl;
         //cout << "mjj details " <<"pt1: " <<jetlist[0].Pt() << " " <<"m1: " <<jetlist[0].M() << " " <<"pt2: "<< jetlist[1].Pt() << " "<<"m2: "<< jetlist[1].M() << " " <<jetlist[0].M() + jetlist[1].M()<< endl;
@@ -131,11 +152,35 @@ void croot_tmp::Loop()
         //cout << "mjj with lead pt: "<<(jetlist[0]+ jetlist[1]).M()/1000. <<endl;
         //cout <<""<<endl;
         //cout << "Max Ele = "<< first_max <<",at pos: "<< first_index<<" ,sec max: " << second_max <<" ,at pos: "<< second_index<<endl; 
-        //cout << (jetlist[0]+ jetlist[1]).M()/1000.  <<", " ;
         //std::cout << "-----------"<<endl;  
       
    } //end of event loop
    
+   
+       const int passed_size = eta_array_pass.size();
+       const int Nopassed_size = eta_array_Nopass.size();
+   	   float eta_pass[passed_size];
+   	   float eta_Nopass[Nopassed_size];
+       float phi_pass[passed_size];
+       float phi_Nopass[Nopassed_size];
+        
+	   std::copy(eta_array_pass.begin(), eta_array_pass.end(), eta_pass);
+	   std::copy(eta_array_Nopass.begin(), eta_array_Nopass.end(), eta_Nopass);
+	   std::copy(phi_array_pass.begin(), phi_array_pass.end(), phi_pass);
+	   std::copy(phi_array_Nopass.begin(), phi_array_Nopass.end(), phi_Nopass);
+		
+   
+    cout << "the total number of jets is" << Total_numberJets <<endl;
+    cout << passed_size << "jets passed the pt cut and "<< Nopassed_size <<"jets didn't pass the selection"<<endl;
+    /*
+    for (int a=0;a<passed_size;a++) {
+		cout << eta_pass[a] << " "<< phi_pass[a]<<endl;
+	}
+	cout <<""<<endl;
+	 for (int b=0;b<Nopassed_size;b++) {
+		cout << eta_Nopass[b] << " " << phi_Nopass[b]<<endl;;
+	}
+   */
    
     TFile *f = new TFile ("output/plot.root", "recreate");
 	jet_n ->Write ();
@@ -150,7 +195,23 @@ void croot_tmp::Loop()
 	//mjj_mm_lead->Write();
     f-> Close();
     
-    jet_n -> SetLineColor(1);
+	//mjj_mm_lead->Draw("A*");
+	
+	TGraph *EvnDisplay_Nopass = new TGraph(Nopassed_size,eta_Nopass, phi_Nopass);
+	EvnDisplay_Nopass->SetMarkerColor(4);
+	EvnDisplay_Nopass->GetXaxis()->SetTitle("eta");
+	EvnDisplay_Nopass->GetYaxis()->SetTitle("phi");
+    EvnDisplay_Nopass->Draw("A*");
+    
+    TGraph *EvnDisplay_pass = new TGraph(passed_size,eta_pass, phi_pass);
+	EvnDisplay_pass->SetMarkerColor(3);
+    EvnDisplay_pass->SetMarkerStyle(3);
+    EvnDisplay_pass->Draw("P");
+
+    
+	
+	/*
+	jet_n -> SetLineColor(1);
     jet_n_L20 -> SetLineColor(2);
     jet_n_L50 -> SetLineColor(3);
 	
@@ -161,9 +222,7 @@ void croot_tmp::Loop()
     mjj_mm_lead->SetTitle("Correlation plot");
     mjj_mm_lead->GetXaxis()->SetTitle("mjj(GeV)");
     mjj_mm_lead->GetYaxis()->SetTitle("Largest combined mass(GeV)");
-	//mjj_mm_lead->Draw("A*");
-	
-	
+    
 	//stacking the histograms
 	string hist_obj1 = "mm_all_ZvvHbb125";
 	string hist_obj2 = "mm_lead_ZvvHbb125";
@@ -195,5 +254,5 @@ void croot_tmp::Loop()
     
     TFile *f1 = new TFile ("output/stack_plot.root", "recreate");
     canvas->Write();
-    
+    */
 }
