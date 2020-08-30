@@ -208,6 +208,10 @@ void croot_tmp::Loop()
     EvnDisplay_pass->SetMarkerStyle(3);
     EvnDisplay_pass->Draw("P");
 
+	TLegend *legend1 = new TLegend(0.7,.75,.9,.9,0);
+    legend1->AddEntry(EvnDisplay_pass,"jets with pt > 30GeV");
+    legend1->AddEntry(EvnDisplay_Nopass,"jets with pt < 30GeV");
+    legend1->Draw();
     
 	
 	/*
