@@ -21,7 +21,7 @@ void croot_tmp::Loop()
     if (fChain == 0) return;
 
     Long64_t nentries = fChain->GetEntriesFast();
-    //nentries = 100;
+    //nentries = 500;
     Long64_t nbytes = 0, nb = 0;
     int Total_numberJets = 0;
   
@@ -33,13 +33,15 @@ void croot_tmp::Loop()
     TH1F *jet_n_L50 = new TH1F("Njet_L50", "",70, 0,70);
     TH1F *mjj = new TH1F ("mjj_ZvvHbb125","", 100, 0, 1000);
     TH1F *mm_all = new TH1F ("mm_all_ZvvHbb125","", 100, 0, 1000);
-    TH1F *mm_lead = new TH1F ("mm_lead_ZvvHbb125","", 100, 0, 1000);
-    TH1F *pt_jj = new TH1F ("pt_jj_ZvvHbb125","", 50, 0, 600);
+    TH1F *mm_lead = new TH1F ("mm_lead_ZvvHbb125","", 160, 0, 1600);
+    TH1F *pt_jj = new TH1F ("pt_jj_ZvvHbb125","", 60, 0, 600);
     TH1F *eta_jj = new TH1F ("eta_jj_ZvvHbb125","", 50, -7, 7);
     TH1F *phi_jj = new TH1F ("phi_jj_ZvvHbb125","", 50, -3.5, 3.5);
     
     Float_t mjj_array[nentries];
     Float_t mm_array[nentries];
+    Float_t max_mm_eta[2*nentries];
+    Float_t max_mm_phi[2*nentries];
     
     std:: vector<float> eta_array_pass;
     std:: vector<float> eta_array_Nopass;
@@ -55,6 +57,7 @@ void croot_tmp::Loop()
        L30 = 0 ; L50 = 0;
        int pt_cut = 30000;
        float MSum_GeV;
+       int first_index;
     
        Long64_t ientry = LoadTree(jentry);
        if (ientry < 0) break;
@@ -67,6 +70,8 @@ void croot_tmp::Loop()
        std:: vector<float> &phir = *AntiKt4LCTopoJets_phi;
        std:: vector<TLorentzVector> jetlist; 
        std:: vector<float> mm_list;
+       std:: vector<float> eta_list;
+       std:: vector<float> phi_list;
       
       //prepare TLorentzVector for each jet in the event
       for (int i =0; i< AntiKt4LCTopoJets_n; i++) {
@@ -77,10 +82,7 @@ void croot_tmp::Loop()
         if ((int)ptr[i] > 30000) L30+=1;
       	if ((int)ptr[i] > 50000) L50+=1;
       	
-      	//std:: cout <<"phi: " <<phir[i] << ",  ";
-      	//std:: cout <<"eta: " <<etar[i] << ",  ";
-      	
-      	
+      	std:: cout <<mr[i]<<", "<< ptr[i]<<", "<<etar[i]<<", "<<phir[i] << "--  ";
       	
       	if(ptr[i]>pt_cut) {
       		eta_array_pass.push_back(etar[i]);
@@ -112,17 +114,21 @@ void croot_tmp::Loop()
         for (int j=0; j<mr.size()-1;j++){
       	  for (int k=1; k<mr.size()-j;k++){
       	  	 MSum_GeV = (jetlist[j]+jetlist[j+k]).M()/1000.;
-      	  	 
+      	  	
         	 //if((jetlist[j].Pt()>pt_cut) && (jetlist[j+k].Pt()>pt_cut)){
-        	 	mm_all->Fill(MSum_GeV);
-        	 	mm_list.push_back(MSum_GeV);
+        	     mm_all->Fill(MSum_GeV);
+        	 	 mm_list.push_back(MSum_GeV);
+        	 	 eta_list.push_back(jetlist[j].Eta());
+        	 	 eta_list.push_back(jetlist[j+k].Eta());
+        	 	 phi_list.push_back(jetlist[j].Phi());
+        	 	 phi_list.push_back(jetlist[j+k].Phi());
         	 //}else{
-        	 	//mm_list.push_back(-1);
+        	 //	mm_list.push_back(-1);
         	 
         	 //}
-             //std::cout << MSum_GeV <<", ";
+             std::cout << MSum_GeV <<", ";
            } 
-         	 //std::cout << ""<<endl;
+         	 std::cout << ""<<endl;
          }
     
     
@@ -135,15 +141,22 @@ void croot_tmp::Loop()
     
         // If element was found, find the position of the element
         if (it != mm_list.end()) { 
-            int first_index = distance(mm_list.begin(), it); 
+            first_index = distance(mm_list.begin(), it); 
         } else { 
       	    cout << "not found, -1" << endl; 
         } 
       
-        if (first_max >0){mm_lead->Fill(first_max);}
-        cout << "first max: " << first_max <<endl;
-        mm_array[jentry]= first_max;
         
+        cout << "first max: " << first_max <<"at "<<first_index<<endl;
+        mm_array[jentry]= first_max;
+        if (first_max >0){
+        mm_lead->Fill(first_max);
+        max_mm_eta[jentry*2] = eta_list[first_index*2];
+        max_mm_eta[jentry*2+1] = eta_list[first_index*2+1];
+        
+        max_mm_phi[jentry*2] = phi_list[first_index*2];
+        max_mm_phi[jentry*2+1] = phi_list[first_index*2+1];
+        }
         
         //cout <<"" <<endl;
         //cout << ": L30 "<< L30 << " L50 " << L50 << ",  Out of total number " << AntiKt4LCTopoJets_n <<", mjj: " << (jetlist[0] + jetlist[1]).M()/1000 << endl;
@@ -155,7 +168,7 @@ void croot_tmp::Loop()
         //std::cout << "-----------"<<endl;  
       
    } //end of event loop
-   
+    
    
        const int passed_size = eta_array_pass.size();
        const int Nopassed_size = eta_array_Nopass.size();
@@ -163,6 +176,14 @@ void croot_tmp::Loop()
    	   float eta_Nopass[Nopassed_size];
        float phi_pass[passed_size];
        float phi_Nopass[Nopassed_size];
+       float max_eta[2*nentries];
+       float max_phi[2*nentries];
+       
+       for (int c=0; c<nentries;c++){
+       		
+       		cout << max_mm_eta[c*2]<<", "<< max_mm_phi[c*2]<<"; ";
+       		cout << max_mm_eta[c*2+1]<<" "<< max_mm_phi[c*2+1]<< endl;
+       }
         
 	   std::copy(eta_array_pass.begin(), eta_array_pass.end(), eta_pass);
 	   std::copy(eta_array_Nopass.begin(), eta_array_Nopass.end(), eta_Nopass);
@@ -207,10 +228,17 @@ void croot_tmp::Loop()
 	EvnDisplay_pass->SetMarkerColor(3);
     EvnDisplay_pass->SetMarkerStyle(3);
     EvnDisplay_pass->Draw("P");
+    
+    TGraph *EvnDisplay_max_mm = new TGraph(nentries*2, max_mm_eta, max_mm_phi);
+	EvnDisplay_max_mm->SetMarkerColor(2);
+    EvnDisplay_max_mm->SetMarkerStyle(3);
+    EvnDisplay_max_mm->Draw("P");
 
+	
 	TLegend *legend1 = new TLegend(0.7,.75,.9,.9,0);
     legend1->AddEntry(EvnDisplay_pass,"jets with pt > 30GeV");
     legend1->AddEntry(EvnDisplay_Nopass,"jets with pt < 30GeV");
+    legend1->AddEntry(EvnDisplay_max_mm,"jets from max combinated mass");
     legend1->Draw();
     
 	
