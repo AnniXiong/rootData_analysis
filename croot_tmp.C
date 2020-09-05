@@ -24,9 +24,10 @@ void croot_tmp::Loop(TH1F *jet_n) {
     if (fChain == 0) return;
 
     Long64_t nentries = fChain->GetEntriesFast();
-    nentries = 6;
+    nentries = 50;
     Long64_t nbytes = 0, nb = 0;
     int Total_numberJets = 0;
+    int EventDisplaynumber = 29;
   
     //histogram definition
    
@@ -75,9 +76,11 @@ void croot_tmp::Loop(TH1F *jet_n) {
        std:: vector<float> mm_list;
        std:: vector<float> eta_list;
        std:: vector<float> phi_list;
+       std:: vector<int> mm_index_1;
+       std:: vector<int> mm_index_2;
+       
        
        std::cout <<"Event ------------"<< AntiKt4LCTopoJets_n <<" jets  "<<endl;
-       if (jentry== 1){EventDisplay(jentry, AntiKt4LCTopoJets_n, ptr, etar, phir, mr);}
       
       //prepare TLorentzVector for each jet in the event
       for (int i =0; i< AntiKt4LCTopoJets_n; i++) {
@@ -89,7 +92,7 @@ void croot_tmp::Loop(TH1F *jet_n) {
       	if ((int)ptr[i] > 50000) L50+=1;
       	
       	//std:: cout <<mr[i]<<", "<< ptr[i]<<", "<<etar[i]<<", "<<phir[i] << "--  ";
-      	std::cout << mr[i]<<", ";
+      	std::cout << ptr[i]<<", ";
       	
       	if(ptr[i]>pt_cut) {
       		eta_array_pass.push_back(etar[i]);
@@ -101,8 +104,9 @@ void croot_tmp::Loop(TH1F *jet_n) {
           
       }
 	
+        
         Total_numberJets+= AntiKt4LCTopoJets_n;
-      	cout <<"" <<endl;
+      	cout <<"----" <<endl;
         if (L30 > 0) jet_n_L20 ->Fill (L30);
         if (L50 > 0) jet_n_L50 ->Fill (L50);
         
@@ -121,22 +125,24 @@ void croot_tmp::Loop(TH1F *jet_n) {
         for (int j=0; j<mr.size()-1;j++){
       	  for (int k=1; k<mr.size()-j;k++){
       	  	 MSum_GeV = (jetlist[j]+jetlist[j+k]).M()/1000.;
-      	  	
-        	 if((jetlist[j].Pt()>pt_cut) && (jetlist[j+k].Pt()>pt_cut)){
+      	  	 
+      	  	 mm_index_1.push_back(j);
+      	  	 mm_index_2.push_back(j+k);
+        	 //if((jetlist[j].Pt()>pt_cut) && (jetlist[j+k].Pt()>pt_cut)){
         	     mm_all->Fill(MSum_GeV);
         	 	 mm_list.push_back(MSum_GeV);
         	 	 eta_list.push_back(jetlist[j].Eta());
         	 	 eta_list.push_back(jetlist[j+k].Eta());
         	 	 phi_list.push_back(jetlist[j].Phi());
         	 	 phi_list.push_back(jetlist[j+k].Phi());
-        	 }else{
+        	 /*}else{
         	    mm_list.push_back(-1);
         	    eta_list.push_back(0);
         	 	eta_list.push_back(0);
         	 	phi_list.push_back(0);
         	 	phi_list.push_back(0);
         	 
-        	 }
+        	 }*/
             std::cout << MSum_GeV <<", ";
            } 
          	std::cout << ""<<endl;
@@ -156,7 +162,7 @@ void croot_tmp::Loop(TH1F *jet_n) {
         } 
       
         
-        cout << "first max: " << first_max <<"at "<<first_index<<endl;
+        cout << "first max: " << first_max <<" at "<<first_index<<endl;
         mm_array[jentry]= first_max;
         
         	if(first_max>0){mm_lead->Fill(first_max);}
@@ -165,7 +171,9 @@ void croot_tmp::Loop(TH1F *jet_n) {
         	max_mm_phi[jentry*2] = phi_list[first_index*2];
         	max_mm_phi[jentry*2+1] = phi_list[first_index*2+1];
 
-        //cout <<"" <<endl;
+		if (jentry== EventDisplaynumber){EventDisplay(jentry, AntiKt4LCTopoJets_n, mm_index_1[first_index], mm_index_2[first_index], ptr, etar, phir, mr);}
+        cout <<"" <<endl;
+        cout << "jet " << mm_index_1[first_index] << "and jet "<< mm_index_2[first_index] << "make the largest mass comb"<<endl;
         //cout << ": L30 "<< L30 << " L50 " << L50 << ",  Out of total number " << AntiKt4LCTopoJets_n <<", mjj: " << (jetlist[0] + jetlist[1]).M()/1000 << endl;
         //cout << "mjj details " <<"pt1: " <<jetlist[0].Pt() << " " <<"m1: " <<jetlist[0].M() << " " <<"pt2: "<< jetlist[1].Pt() << " "<<"m2: "<< jetlist[1].M() << " " <<jetlist[0].M() + jetlist[1].M()<< endl;
         //cout <<"" <<endl;
@@ -298,7 +306,7 @@ void croot_tmp::Loop(TH1F *jet_n) {
 
 
 
-void croot_tmp::EventDisplay(Int_t EvnID, Int_t jetN, vector <float> &pt, vector <float> &eta, vector <float> &phi, vector <float> &m ) {
+void croot_tmp::EventDisplay(Int_t EvnID, Int_t jetN, int index1, int index2, vector <float> &pt, vector <float> &eta, vector <float> &phi, vector <float> &m ) {
 	
 	cout <<"Displaying event number "<< EvnID << "which has "<< jetN << "jets"<<endl;
 	vector <TLorentzVector> jv;
@@ -326,6 +334,7 @@ void croot_tmp::EventDisplay(Int_t EvnID, Int_t jetN, vector <float> &pt, vector
 		e = new TEllipse (eta[i],phi[i],jetR, 0);
 		if(pt[i] > 30000){e->SetLineColor(4);}
 		if(i < 2){e->SetLineColor(3);}
+		if((i==index1) || (i==index2)){e->SetLineColor(2);}
 		e->Draw();
 	
 		std::string s;
