@@ -301,7 +301,8 @@ public :
    virtual Int_t    GetEntry(Long64_t entry);
    virtual Long64_t LoadTree(Long64_t entry);
    virtual void     Init(TTree *tree);
-   virtual void     Loop();
+   virtual void     Loop(TH1F *jet_n);
+   virtual void 	EventDisplay(Int_t EvnID, Int_t jetN, vector <float> &pt, vector <float> &eta, vector <float> &phi, vector <float> &m);
    virtual Bool_t   Notify();
    virtual void     Show(Long64_t entry = -1);
 };
@@ -336,6 +337,7 @@ Int_t croot_tmp::GetEntry(Long64_t entry)
    if (!fChain) return 0;
    return fChain->GetEntry(entry);
 }
+
 Long64_t croot_tmp::LoadTree(Long64_t entry)
 {
 // Set the environment to read one entry

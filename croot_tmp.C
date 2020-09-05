@@ -12,21 +12,24 @@
 
 #include <TLorentzVector.h>
 
-void croot_tmp::Loop()
-{
+#include <TEllipse.h>
+#include <TText.h>
+#include <string>
+
+
+void croot_tmp::Loop(TH1F *jet_n) {
 
     fChain->SetBranchStatus("*",0);  // disable all branches
     fChain->SetBranchStatus("AntiKt4LCTopoJets_*",1);  // activate branchname
-    
     if (fChain == 0) return;
 
     Long64_t nentries = fChain->GetEntriesFast();
-    //nentries = 500;
+    nentries = 6;
     Long64_t nbytes = 0, nb = 0;
     int Total_numberJets = 0;
   
     //histogram definition
-    TH1F *jet_n = new TH1F("Njet","",70,0,70);
+   
     TH1F *jet_n_Ptcut_30 = new TH1F("Njet_Ptcut_30","",70,0,70);
    
     TH1F *jet_n_L20 = new TH1F("Njet_L20", "",70,0,70);
@@ -50,7 +53,7 @@ void croot_tmp::Loop()
     
    
     for (Long64_t jentry=0; jentry<nentries; jentry++) {
-       std::cout <<"Event ------------"<< AntiKt4LCTopoJets_n <<" jets  "<<endl;
+       
        // Fill jet_number_L histograms if the event has at least one jet with pt larger than 30/50 GeV
        int L30 = 0;
        int L50 = 0;
@@ -72,6 +75,9 @@ void croot_tmp::Loop()
        std:: vector<float> mm_list;
        std:: vector<float> eta_list;
        std:: vector<float> phi_list;
+       
+       std::cout <<"Event ------------"<< AntiKt4LCTopoJets_n <<" jets  "<<endl;
+       if (jentry== 1){EventDisplay(jentry, AntiKt4LCTopoJets_n, ptr, etar, phir, mr);}
       
       //prepare TLorentzVector for each jet in the event
       for (int i =0; i< AntiKt4LCTopoJets_n; i++) {
@@ -82,7 +88,8 @@ void croot_tmp::Loop()
         if ((int)ptr[i] > 30000) L30+=1;
       	if ((int)ptr[i] > 50000) L50+=1;
       	
-      	std:: cout <<mr[i]<<", "<< ptr[i]<<", "<<etar[i]<<", "<<phir[i] << "--  ";
+      	//std:: cout <<mr[i]<<", "<< ptr[i]<<", "<<etar[i]<<", "<<phir[i] << "--  ";
+      	std::cout << mr[i]<<", ";
       	
       	if(ptr[i]>pt_cut) {
       		eta_array_pass.push_back(etar[i]);
@@ -115,26 +122,28 @@ void croot_tmp::Loop()
       	  for (int k=1; k<mr.size()-j;k++){
       	  	 MSum_GeV = (jetlist[j]+jetlist[j+k]).M()/1000.;
       	  	
-        	 //if((jetlist[j].Pt()>pt_cut) && (jetlist[j+k].Pt()>pt_cut)){
+        	 if((jetlist[j].Pt()>pt_cut) && (jetlist[j+k].Pt()>pt_cut)){
         	     mm_all->Fill(MSum_GeV);
         	 	 mm_list.push_back(MSum_GeV);
         	 	 eta_list.push_back(jetlist[j].Eta());
         	 	 eta_list.push_back(jetlist[j+k].Eta());
         	 	 phi_list.push_back(jetlist[j].Phi());
         	 	 phi_list.push_back(jetlist[j+k].Phi());
-        	 //}else{
-        	 //	mm_list.push_back(-1);
+        	 }else{
+        	    mm_list.push_back(-1);
+        	    eta_list.push_back(0);
+        	 	eta_list.push_back(0);
+        	 	phi_list.push_back(0);
+        	 	phi_list.push_back(0);
         	 
-        	 //}
-             std::cout << MSum_GeV <<", ";
+        	 }
+            std::cout << MSum_GeV <<", ";
            } 
-         	 std::cout << ""<<endl;
+         	std::cout << ""<<endl;
          }
     
     
     	//for (const float & va: mm_list ){cout << va << ", ";}
-
-
         //Calculate largest combined MM 
         float first_max = *max_element(mm_list.begin(), mm_list.end());
         auto it = find(mm_list.begin(), mm_list.end(), first_max);
@@ -149,15 +158,13 @@ void croot_tmp::Loop()
         
         cout << "first max: " << first_max <<"at "<<first_index<<endl;
         mm_array[jentry]= first_max;
-        if (first_max >0){
-        mm_lead->Fill(first_max);
-        max_mm_eta[jentry*2] = eta_list[first_index*2];
-        max_mm_eta[jentry*2+1] = eta_list[first_index*2+1];
         
-        max_mm_phi[jentry*2] = phi_list[first_index*2];
-        max_mm_phi[jentry*2+1] = phi_list[first_index*2+1];
-        }
-        
+        	if(first_max>0){mm_lead->Fill(first_max);}
+        	max_mm_eta[jentry*2] = eta_list[first_index*2];
+        	max_mm_eta[jentry*2+1] = eta_list[first_index*2+1];
+        	max_mm_phi[jentry*2] = phi_list[first_index*2];
+        	max_mm_phi[jentry*2+1] = phi_list[first_index*2+1];
+
         //cout <<"" <<endl;
         //cout << ": L30 "<< L30 << " L50 " << L50 << ",  Out of total number " << AntiKt4LCTopoJets_n <<", mjj: " << (jetlist[0] + jetlist[1]).M()/1000 << endl;
         //cout << "mjj details " <<"pt1: " <<jetlist[0].Pt() << " " <<"m1: " <<jetlist[0].M() << " " <<"pt2: "<< jetlist[1].Pt() << " "<<"m2: "<< jetlist[1].M() << " " <<jetlist[0].M() + jetlist[1].M()<< endl;
@@ -181,8 +188,8 @@ void croot_tmp::Loop()
        
        for (int c=0; c<nentries;c++){
        		
-       		cout << max_mm_eta[c*2]<<", "<< max_mm_phi[c*2]<<"; ";
-       		cout << max_mm_eta[c*2+1]<<" "<< max_mm_phi[c*2+1]<< endl;
+       		//cout << max_mm_eta[c*2]<<", "<< max_mm_phi[c*2]<<"; ";
+       		//cout << max_mm_eta[c*2+1]<<" "<< max_mm_phi[c*2+1]<< endl;
        }
         
 	   std::copy(eta_array_pass.begin(), eta_array_pass.end(), eta_pass);
@@ -217,7 +224,7 @@ void croot_tmp::Loop()
     f-> Close();
     
 	//mjj_mm_lead->Draw("A*");
-	
+	/*
 	TGraph *EvnDisplay_Nopass = new TGraph(Nopassed_size,eta_Nopass, phi_Nopass);
 	EvnDisplay_Nopass->SetMarkerColor(4);
 	EvnDisplay_Nopass->GetXaxis()->SetTitle("eta");
@@ -238,11 +245,11 @@ void croot_tmp::Loop()
 	TLegend *legend1 = new TLegend(0.7,.75,.9,.9,0);
     legend1->AddEntry(EvnDisplay_pass,"jets with pt > 30GeV");
     legend1->AddEntry(EvnDisplay_Nopass,"jets with pt < 30GeV");
-    legend1->AddEntry(EvnDisplay_max_mm,"jets from max combinated mass");
+    legend1->AddEntry(EvnDisplay_max_mm,"jets from max combined mass and both jets pt > 30GeV");
     legend1->Draw();
     
 	
-	/*
+	
 	jet_n -> SetLineColor(1);
     jet_n_L20 -> SetLineColor(2);
     jet_n_L50 -> SetLineColor(3);
@@ -287,4 +294,49 @@ void croot_tmp::Loop()
     TFile *f1 = new TFile ("output/stack_plot.root", "recreate");
     canvas->Write();
     */
+}
+
+
+
+void croot_tmp::EventDisplay(Int_t EvnID, Int_t jetN, vector <float> &pt, vector <float> &eta, vector <float> &phi, vector <float> &m ) {
+	
+	cout <<"Displaying event number "<< EvnID << "which has "<< jetN << "jets"<<endl;
+	vector <TLorentzVector> jv;
+	Float_t jetR = 0.4;
+	float eta_a[jetN];
+	float phi_a[jetN];
+	std:: copy(eta.begin(), eta.end(), eta_a);
+	std:: copy(phi.begin(), phi.end(), phi_a);
+	
+	TCanvas* c1 = new TCanvas("c1","Examples of Gaxis",10,10,700,500);
+
+	TGraph *g = new TGraph(jetN,eta_a,phi_a);
+	g->SetMarkerColor(4);
+	g->SetMarkerSize(0.3);
+	g->GetXaxis()->SetTitle("Eta");
+	g->GetYaxis()->SetTitle("Phi");
+	g->Draw("A*");
+
+	for(int i = 0; i<jetN;i++){
+		TLorentzVector jet;
+		jet.SetPtEtaPhiM(pt[i],eta[i],phi[i],m[i]);
+		jv.push_back(jet);
+	
+		TEllipse *e;
+		e = new TEllipse (eta[i],phi[i],jetR, 0);
+		if(pt[i] > 30000){e->SetLineColor(4);}
+		if(i < 2){e->SetLineColor(3);}
+		e->Draw();
+	
+		std::string s;
+		char const *pchar;
+		TText *t;
+		s = std::to_string((int)(pt[i]/1000));
+		pchar = s.c_str();
+		t = new TText (eta[i]-0.15,phi[i]-0.15,pchar);
+		t->SetTextSize(0.04);
+		t->SetTextFont(82);
+		t->Draw();
+}
+
 }
