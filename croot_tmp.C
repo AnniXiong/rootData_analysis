@@ -27,7 +27,7 @@ void croot_tmp::Loop(TH1F *jet_n) {
     nentries = 50;
     Long64_t nbytes = 0, nb = 0;
     int Total_numberJets = 0;
-    int EventDisplaynumber = 29;
+    int EventDisplaynumber = 35;
   
     //histogram definition
    
@@ -91,8 +91,8 @@ void croot_tmp::Loop(TH1F *jet_n) {
         if ((int)ptr[i] > 30000) L30+=1;
       	if ((int)ptr[i] > 50000) L50+=1;
       	
-      	//std:: cout <<mr[i]<<", "<< ptr[i]<<", "<<etar[i]<<", "<<phir[i] << "--  ";
-      	std::cout << ptr[i]<<", ";
+      	std:: cout << ptr[i]<<", "<<etar[i]<<", "<<phir[i] <<", "<<mr[i]<<"--  ";
+      	//std::cout << ptr[i]<<", ";
       	
       	if(ptr[i]>pt_cut) {
       		eta_array_pass.push_back(etar[i]);
@@ -104,6 +104,13 @@ void croot_tmp::Loop(TH1F *jet_n) {
           
       }
 	
+		TLorentzVector met_tv =  MET (jetlist);
+		float met_stv;
+		met_stv = met_tv.Et();
+		cout << ""<<endl;
+		cout << "Summed TLvector has "<< met_tv.Pt() <<", "<< met_tv.Eta() <<", " << met_tv.Phi() <<", " <<met_tv.M()<<endl;
+		cout << "The missing met is "<< met_stv <<endl;
+		
         
         Total_numberJets+= AntiKt4LCTopoJets_n;
       	cout <<"----" <<endl;
@@ -143,9 +150,9 @@ void croot_tmp::Loop(TH1F *jet_n) {
         	 	phi_list.push_back(0);
         	 
         	 }*/
-            std::cout << MSum_GeV <<", ";
+            //std::cout << MSum_GeV <<", ";
            } 
-         	std::cout << ""<<endl;
+         	//std::cout << ""<<endl;
          }
     
     
@@ -170,8 +177,12 @@ void croot_tmp::Loop(TH1F *jet_n) {
         	max_mm_eta[jentry*2+1] = eta_list[first_index*2+1];
         	max_mm_phi[jentry*2] = phi_list[first_index*2];
         	max_mm_phi[jentry*2+1] = phi_list[first_index*2+1];
-
-		if (jentry== EventDisplaynumber){EventDisplay(jentry, AntiKt4LCTopoJets_n, mm_index_1[first_index], mm_index_2[first_index], ptr, etar, phir, mr);}
+		
+		//---------------------//
+		//Run the event display//
+		//---------------------//
+		
+		if (jentry== EventDisplaynumber){EventDisplay(met_tv, jentry, AntiKt4LCTopoJets_n, mm_index_1[first_index], mm_index_2[first_index], ptr, etar, phir, mr);}
         cout <<"" <<endl;
         cout << "jet " << mm_index_1[first_index] << "and jet "<< mm_index_2[first_index] << "make the largest mass comb"<<endl;
         //cout << ": L30 "<< L30 << " L50 " << L50 << ",  Out of total number " << AntiKt4LCTopoJets_n <<", mjj: " << (jetlist[0] + jetlist[1]).M()/1000 << endl;
@@ -306,7 +317,7 @@ void croot_tmp::Loop(TH1F *jet_n) {
 
 
 
-void croot_tmp::EventDisplay(Int_t EvnID, Int_t jetN, int index1, int index2, vector <float> &pt, vector <float> &eta, vector <float> &phi, vector <float> &m ) {
+void croot_tmp::EventDisplay(TLorentzVector metTLv, Int_t EvnID, Int_t jetN, int index1, int index2, vector <float> &pt, vector <float> &eta, vector <float> &phi, vector <float> &m ) {
 	
 	cout <<"Displaying event number "<< EvnID << "which has "<< jetN << "jets"<<endl;
 	vector <TLorentzVector> jv;
@@ -316,8 +327,8 @@ void croot_tmp::EventDisplay(Int_t EvnID, Int_t jetN, int index1, int index2, ve
 	std:: copy(eta.begin(), eta.end(), eta_a);
 	std:: copy(phi.begin(), phi.end(), phi_a);
 	
+	
 	TCanvas* c1 = new TCanvas("c1","Examples of Gaxis",10,10,700,500);
-
 	TGraph *g = new TGraph(jetN,eta_a,phi_a);
 	g->SetMarkerColor(4);
 	g->SetMarkerSize(0.3);
@@ -347,5 +358,23 @@ void croot_tmp::EventDisplay(Int_t EvnID, Int_t jetN, int index1, int index2, ve
 		t->SetTextFont(82);
 		t->Draw();
 }
+		
+		//Draw the missing Et
+		std::string met_s = std::to_string((int)(metTLv.Et()/1000));
+		char const *met_pchar = met_s.c_str();
+		TText *met_t = new TText (metTLv.Eta(), metTLv.Phi(), met_pchar); 
+		met_t->SetTextSize(0.04);
+		met_t->SetTextFont(82);
+		met_t->Draw();
 
+}
+
+//This function is to calculate the transverse energy of the final state jets
+TLorentzVector croot_tmp::MET (vector <TLorentzVector> jetlist){
+	TLorentzVector Summed_tv;
+	for (int i = 0;  i < jetlist.size(); i ++){
+		Summed_tv += jetlist[i];
+	}
+	Summed_tv.SetPxPyPzE(-Summed_tv.Px(), -Summed_tv.Py(), -Summed_tv.Pz(), Summed_tv.E());
+	return Summed_tv;
 }

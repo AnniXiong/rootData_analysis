@@ -302,7 +302,8 @@ public :
    virtual Long64_t LoadTree(Long64_t entry);
    virtual void     Init(TTree *tree);
    virtual void     Loop(TH1F *jet_n);
-   virtual void 	EventDisplay(Int_t EvnID, Int_t jetN, int index1, int index2, vector <float> &pt, vector <float> &eta, vector <float> &phi, vector <float> &m);
+   virtual void 	EventDisplay(TLorentzVector metTLv, Int_t EvnID, Int_t jetN, int index1, int index2, vector <float> &pt, vector <float> &eta, vector <float> &phi, vector <float> &m);
+   virtual TLorentzVector  MET (vector <TLorentzVector> jetlist);
    virtual Bool_t   Notify();
    virtual void     Show(Long64_t entry = -1);
 };
