@@ -12,7 +12,10 @@
 
 #include <TLorentzVector.h>
 
+
 #include <TEllipse.h>
+#include <TPolyLine.h>
+#include <TPaveText.h>
 #include <TText.h>
 #include <string>
 
@@ -24,7 +27,7 @@ void croot_tmp::Loop(TH1F *jet_n) {
     if (fChain == 0) return;
 
     Long64_t nentries = fChain->GetEntriesFast();
-    nentries = 50;
+    nentries = 36;
     Long64_t nbytes = 0, nb = 0;
     int Total_numberJets = 0;
     int EventDisplaynumber = 35;
@@ -80,7 +83,7 @@ void croot_tmp::Loop(TH1F *jet_n) {
        std:: vector<int> mm_index_2;
        
        
-       std::cout <<"Event ------------"<< AntiKt4LCTopoJets_n <<" jets  "<<endl;
+       std::cout <<"Event ------------"<<jentry<<" with "<< AntiKt4LCTopoJets_n <<" jets  "<<endl;
       
       //prepare TLorentzVector for each jet in the event
       for (int i =0; i< AntiKt4LCTopoJets_n; i++) {
@@ -91,8 +94,9 @@ void croot_tmp::Loop(TH1F *jet_n) {
         if ((int)ptr[i] > 30000) L30+=1;
       	if ((int)ptr[i] > 50000) L50+=1;
       	
-      	std:: cout << ptr[i]<<", "<<etar[i]<<", "<<phir[i] <<", "<<mr[i]<<"--  ";
-      	//std::cout << ptr[i]<<", ";
+      	//std:: cout << ptr[i]<<", "<<etar[i]<<", "<<phir[i] <<", "<<mr[i]<<"--  ";
+      	
+      	
       	
       	if(ptr[i]>pt_cut) {
       		eta_array_pass.push_back(etar[i]);
@@ -102,14 +106,14 @@ void croot_tmp::Loop(TH1F *jet_n) {
        		phi_array_Nopass.push_back(phir[i]);
         }
           
-      }
+      }//end of jet loop
 	
 		TLorentzVector met_tv =  MET (jetlist);
 		float met_stv;
 		met_stv = met_tv.Et();
 		cout << ""<<endl;
-		cout << "Summed TLvector has "<< met_tv.Pt() <<", "<< met_tv.Eta() <<", " << met_tv.Phi() <<", " <<met_tv.M()<<endl;
-		cout << "The missing met is "<< met_stv <<endl;
+		cout << "Summed TLvector has "<< met_tv.Px() <<", "<< met_tv.Py() <<", " << met_tv.Pz() <<", " <<met_tv.E()<<endl;
+		cout << "The missing met is "<< met_stv <<"with pt: "<< met_tv.Pt()<<","<<met_tv.M()<<endl;
 		
         
         Total_numberJets+= AntiKt4LCTopoJets_n;
@@ -127,6 +131,9 @@ void croot_tmp::Loop(TH1F *jet_n) {
         pt_jj->Fill((jetlist[0]+ jetlist[1]).Pt()/1000.);
         eta_jj->Fill((jetlist[0]+ jetlist[1]).Eta());
         phi_jj->Fill((jetlist[0]+ jetlist[1]).Phi());
+        
+        std:: cout <<"1st jet P" <<jetlist[0].Px() <<", "<<jetlist[0].Py()<<", "<<jetlist[0].Pz() <<", "<<jetlist[0].E()<<", "<<jetlist[0].Pt()<<"--  "<<endl;
+        std:: cout <<"2nd jet P" <<jetlist[1].Px() <<", "<<jetlist[1].Py()<<", "<<jetlist[1].Pz() <<", "<<jetlist[1].E()<<", "<<jetlist[1].Pt()<<"--  "<<endl;
         
         //Calculate all combinations of MM
         for (int j=0; j<mr.size()-1;j++){
@@ -169,7 +176,7 @@ void croot_tmp::Loop(TH1F *jet_n) {
         } 
       
         
-        cout << "first max: " << first_max <<" at "<<first_index<<endl;
+        //cout << "first max: " << first_max <<" at "<<first_index<<endl;
         mm_array[jentry]= first_max;
         
         	if(first_max>0){mm_lead->Fill(first_max);}
@@ -315,39 +322,70 @@ void croot_tmp::Loop(TH1F *jet_n) {
     */
 }
 
-
-
 void croot_tmp::EventDisplay(TLorentzVector metTLv, Int_t EvnID, Int_t jetN, int index1, int index2, vector <float> &pt, vector <float> &eta, vector <float> &phi, vector <float> &m ) {
 	
-	cout <<"Displaying event number "<< EvnID << "which has "<< jetN << "jets"<<endl;
+	//cout <<"Displaying event number "<< EvnID << "which has "<< jetN << "jets"<<endl;
 	vector <TLorentzVector> jv;
-	Float_t jetR = 0.4;
+	
 	float eta_a[jetN];
 	float phi_a[jetN];
 	std:: copy(eta.begin(), eta.end(), eta_a);
 	std:: copy(phi.begin(), phi.end(), phi_a);
 	
 	
-	TCanvas* c1 = new TCanvas("c1","Examples of Gaxis",10,10,700,500);
+	TCanvas* c1 = new TCanvas("c1","Examples of Gaxis",200,10,700,500);
+	
+	//TH2F *hpx = new TH2F("hpx","Fix TGraph range",20,-3,3,10,-2,2);
+	//hpx->SetStats(kFALSE);
+	//hpx->Draw();
+	
+	// to have fixed plotting range
+	float x_range[4] = {-5,-5,6,6};
+	float y_range[4] = {-3.5,6,-3.5,6};
+	
+	TGraph *g_range = new TGraph(4,x_range,y_range);
+		
+	g_range->SetTitle("Event 35");
+	g_range->SetMarkerColor(17);
+	g_range->SetMarkerSize(0.5);
+	g_range->GetXaxis()->SetTitle("#eta");
+	g_range->GetYaxis()->SetTitle("#phi");
+	g_range->Draw("A*");
+	
 	TGraph *g = new TGraph(jetN,eta_a,phi_a);
 	g->SetMarkerColor(4);
 	g->SetMarkerSize(0.3);
-	g->GetXaxis()->SetTitle("Eta");
-	g->GetYaxis()->SetTitle("Phi");
-	g->Draw("A*");
+	
+	g->Draw("*");
 
 	for(int i = 0; i<jetN;i++){
 		TLorentzVector jet;
 		jet.SetPtEtaPhiM(pt[i],eta[i],phi[i],m[i]);
 		jv.push_back(jet);
 	
-		TEllipse *e;
-		e = new TEllipse (eta[i],phi[i],jetR, 0);
-		if(pt[i] > 30000){e->SetLineColor(4);}
-		if(i < 2){e->SetLineColor(3);}
-		if((i==index1) || (i==index2)){e->SetLineColor(2);}
+		TEllipse *e; e = new TEllipse (eta[i],phi[i],0.4, 0);
 		e->Draw();
-	
+		TEllipse *e_lead_pt; e_lead_pt = new TEllipse (eta[i],phi[i],0.35, 0);
+		TEllipse *e_30_pt; e_30_pt = new TEllipse (eta[i],phi[i],0.3, 0);
+		TEllipse *e_max; e_max = new TEllipse (eta[i],phi[i],0.24, 0);
+		
+		if(i < 2){	
+			e_lead_pt->SetLineColor(8);
+			e_lead_pt->SetLineWidth(3);
+			e_lead_pt ->Draw();
+		}
+		if(pt[i] > 30000){	
+			e_30_pt->SetLineColor(4);
+			e_30_pt->SetLineWidth(3);
+			e_30_pt->Draw();
+		}
+		if((i==index1) || (i==index2)){
+			e_max->SetLineColor(2);
+			e_max->SetLineWidth(3);
+			e_max->Draw();
+		}
+		
+		//Labeling the pt's on each ellipse
 		std::string s;
 		char const *pchar;
 		TText *t;
@@ -359,22 +397,40 @@ void croot_tmp::EventDisplay(TLorentzVector metTLv, Int_t EvnID, Int_t jetN, int
 		t->Draw();
 }
 		
-		//Draw the missing Et
+		//label the missing Et
 		std::string met_s = std::to_string((int)(metTLv.Et()/1000));
 		char const *met_pchar = met_s.c_str();
-		TText *met_t = new TText (metTLv.Eta(), metTLv.Phi(), met_pchar); 
+		TText *met_t = new TText(-4, metTLv.Phi()+0.15, met_pchar); 
 		met_t->SetTextSize(0.04);
-		met_t->SetTextFont(82);
+		met_t->SetTextFont(102);
 		met_t->Draw();
+		//Draw the MET line
+		TLine *lmet = new TLine(-5.6, metTLv.Phi(), 5.6, metTLv.Phi());
+		lmet->Draw();
+		
+		std::string parent_pt = std::to_string((int)((jv[0]+jv[1]).Pt()/1000));
+		char const *parent_pchar = parent_pt.c_str();
+		std::string parent_eta = std::to_string((jv[0]+jv[1]).Eta());
+		char const *parent_etachar = parent_eta.c_str();
+		std::string parent_phi = std::to_string((jv[0]+jv[1]).Phi());
+		char const *parent_phichar = parent_phi.c_str();
+		
+		
+		TPaveText *PT = new TPaveText (3.5,4.5,6.5,6.5);
+		PT->AddText("Parent particle info (pt, #eta, #phi)");
+		PT->AddText(parent_pchar);
+		PT->AddText(parent_etachar);
+		PT->AddText(parent_phichar);
+		PT->Draw();
+
 
 }
 
 //This function is to calculate the transverse energy of the final state jets
 TLorentzVector croot_tmp::MET (vector <TLorentzVector> jetlist){
 	TLorentzVector Summed_tv;
-	for (int i = 0;  i < jetlist.size(); i ++){
-		Summed_tv += jetlist[i];
-	}
-	Summed_tv.SetPxPyPzE(-Summed_tv.Px(), -Summed_tv.Py(), -Summed_tv.Pz(), Summed_tv.E());
+	// j< 2 mean to only include the 1st two jets for MET calculation
+	for (int j=0;j<2;j++){Summed_tv += jetlist[j];}
+		Summed_tv.SetPxPyPzE(-Summed_tv.Px(), -Summed_tv.Py(), -Summed_tv.Pz(), Summed_tv.E());
 	return Summed_tv;
 }
